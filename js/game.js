@@ -279,7 +279,7 @@ function showSection(mode) {
 
 async function loadNextQuestion() {
     // Show loading state
-    DOM.questionText.textContent = '🔄 Loading question...';
+    DOM.questionText.textContent = '🔄 Зареждане на въпрос...';
     
     if (CONFIG.DEMO_MODE) {
         // Use demo questions
@@ -297,21 +297,39 @@ async function loadNextQuestion() {
     } else {
         // Call n8n API
         try {
+            console.log('🚀 Calling API:', `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.NEW_GAME}`);
+            console.log('📤 Request body:', { spiciness: gameState.spiciness });
+            
             const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.NEW_GAME}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ spiciness: gameState.spiciness })
             });
             
+            console.log('📡 Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             console.log('📥 API Response:', data);
+            console.log('📥 data.question:', data.question);
+            console.log('📥 data.answers:', data.answers);
             
-            if (data.question) {
+            if (data.question && data.answers) {
+                // Direct format from n8n
                 gameState.currentQuestion = {
                     id: Date.now(),
                     text: data.question,
-                    answers: data.answers.map((a, i) => ({ ...a, slot: i + 1, revealed: false }))
+                    answers: data.answers.map((a, i) => ({ 
+                        text: a.text, 
+                        points: a.points, 
+                        slot: i + 1, 
+                        revealed: false 
+                    }))
                 };
+                console.log('✅ Question loaded:', gameState.currentQuestion.text);
             } else if (data.output) {
                 // Handle AI Agent output format
                 const parsed = typeof data.output === 'string' ? JSON.parse(data.output) : data.output;
@@ -320,11 +338,14 @@ async function loadNextQuestion() {
                     text: parsed.question,
                     answers: parsed.answers.map((a, i) => ({ ...a, slot: i + 1, revealed: false }))
                 };
+                console.log('✅ Question loaded from output:', gameState.currentQuestion.text);
             } else {
+                console.error('❌ Invalid response format:', data);
                 throw new Error('Invalid response format');
             }
         } catch (error) {
             console.error('❌ API Error:', error);
+            console.error('❌ Falling back to demo questions');
             // Fallback to demo
             const q = DEMO_QUESTIONS.normal[0];
             gameState.currentQuestion = {
