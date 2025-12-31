@@ -630,6 +630,9 @@ async function startFastMoney() {
     
     const winningTeam = gameState.team1.score >= gameState.team2.score ? 1 : 2;
     
+    // Show loading overlay while questions load
+    showFMLoadingOverlay();
+    
     // Get Fast Money questions from API
     let fmQuestions;
     if (CONFIG.DEMO_MODE) {
@@ -674,8 +677,29 @@ async function startFastMoney() {
     loadFMQuestions();
     updateFMUI();
     
-    // Show start overlay for Player 1 instead of starting timer immediately
+    // Hide loading and show start overlay for Player 1
+    hideFMLoadingOverlay();
     showFMStartOverlay(1);
+}
+
+function showFMLoadingOverlay() {
+    const overlay = document.getElementById('fm-start-overlay');
+    const title = document.getElementById('fm-start-title');
+    const instruction = document.getElementById('fm-start-instruction');
+    const tip = document.querySelector('.fm-start-tip');
+    const startBtn = document.getElementById('fm-start-btn');
+    
+    title.textContent = '⏳ ЗАРЕЖДАНЕ... ⏳';
+    instruction.textContent = 'Въпросите се зареждат от AI...';
+    tip.style.display = 'none';
+    startBtn.style.display = 'none';
+    
+    overlay.classList.remove('hidden');
+}
+
+function hideFMLoadingOverlay() {
+    const startBtn = document.getElementById('fm-start-btn');
+    startBtn.style.display = 'block';
 }
 
 function showFMStartOverlay(playerNum) {
@@ -683,6 +707,11 @@ function showFMStartOverlay(playerNum) {
     const title = document.getElementById('fm-start-title');
     const instruction = document.getElementById('fm-start-instruction');
     const tip = document.querySelector('.fm-start-tip');
+    const startBtn = document.getElementById('fm-start-btn');
+    
+    startBtn.style.display = 'block';
+    startBtn.textContent = '▶️ СТАРТ';
+    startBtn.onclick = startFMPlayerRound;
     
     if (playerNum === 1) {
         title.textContent = '🎯 ИГРАЧ 1 🎯';
@@ -875,12 +904,43 @@ function endFastMoney() {
         }, i * 500);
     });
     
+    // After all answers revealed, show Next button
     setTimeout(() => {
         if (fm.totalPoints >= CONFIG.FAST_MONEY_TARGET) {
             DOM.fmPrize.classList.add('won');
         }
-        setTimeout(() => showWinner(fm.winningTeam, fm.totalPoints >= CONFIG.FAST_MONEY_TARGET), 2000);
+        // Show "Next" button using overlay instead of auto-transition
+        showFMNextOverlay();
     }, 3000);
+}
+
+function showFMNextOverlay() {
+    const fm = gameState.fastMoney;
+    const overlay = document.getElementById('fm-start-overlay');
+    const title = document.getElementById('fm-start-title');
+    const instruction = document.getElementById('fm-start-instruction');
+    const tip = document.querySelector('.fm-start-tip');
+    const startBtn = document.getElementById('fm-start-btn');
+    
+    const wonPrize = fm.totalPoints >= CONFIG.FAST_MONEY_TARGET;
+    
+    if (wonPrize) {
+        title.textContent = '🎉 ПОБЕДА! 🎉';
+        instruction.textContent = `Общо ${fm.totalPoints} точки! Печелите наградата!`;
+    } else {
+        title.textContent = '📊 РЕЗУЛТАТ 📊';
+        instruction.textContent = `Общо ${fm.totalPoints} от ${CONFIG.FAST_MONEY_TARGET} точки`;
+    }
+    
+    tip.style.display = 'none';
+    startBtn.textContent = '➡️ НАПРЕД';
+    startBtn.style.display = 'block';
+    startBtn.onclick = () => {
+        hideFMStartOverlay();
+        showWinner(fm.winningTeam, wonPrize);
+    };
+    
+    overlay.classList.remove('hidden');
 }
 
 function updateFMUI() {
