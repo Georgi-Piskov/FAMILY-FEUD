@@ -4,61 +4,301 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Feud</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-        }
-        
-        .container {
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        h1 {
-            font-size: 4rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5rem;
-            margin-bottom: 1rem;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
-            background: linear-gradient(45deg, #ffd700, #ffaa00);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .subtitle {
-            font-size: 1.5rem;
-            color: #e94560;
-            margin-bottom: 2rem;
-        }
-        
-        .coming-soon {
-            font-size: 1.2rem;
-            color: #a0a0a0;
-            padding: 1rem 2rem;
-            border: 2px solid #e94560;
-            border-radius: 50px;
-            display: inline-block;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>Family Feud</h1>
-        <p class="subtitle">🎮 Играта скоро ще бъде тук! 🎮</p>
-        <p class="coming-soon">Coming Soon...</p>
+    <div class="game-container">
+        <!-- Header with scores -->
+        <header class="game-header">
+            <div class="team team-left" id="team1-panel">
+                <div class="team-name" id="team1-name">Team 1</div>
+                <div class="team-score" id="team1-score">0</div>
+                <div class="active-indicator" id="team1-indicator">▶ PLAYING</div>
+            </div>
+            <div class="round-indicator">
+                <span id="round-number">Round 1</span>
+                <span id="multiplier" class="multiplier">x1</span>
+            </div>
+            <div class="team team-right" id="team2-panel">
+                <div class="team-name" id="team2-name">Team 2</div>
+                <div class="team-score" id="team2-score">0</div>
+                <div class="active-indicator" id="team2-indicator">▶ PLAYING</div>
+            </div>
+        </header>
+
+        <!-- Main game board -->
+        <main class="game-board">
+            <!-- Question display -->
+            <div class="question-box">
+                <div class="question-text" id="question-text">Loading question...</div>
+            </div>
+
+            <!-- Answer board -->
+            <div class="answer-board">
+                <div class="board-frame">
+                    <!-- Decorative dots - left side -->
+                    <div class="dots-panel dots-left">
+                        <div class="dots-grid"></div>
+                    </div>
+
+                    <!-- Main answers grid -->
+                    <div class="answers-container">
+                        <div class="answer-row">
+                            <div class="answer-slot" data-slot="1">
+                                <div class="answer-card">
+                                    <div class="card-front">1</div>
+                                    <div class="card-back">
+                                        <span class="answer-text"></span>
+                                        <span class="answer-points"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="answer-slot" data-slot="2">
+                                <div class="answer-card">
+                                    <div class="card-front">2</div>
+                                    <div class="card-back">
+                                        <span class="answer-text"></span>
+                                        <span class="answer-points"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="answer-row">
+                            <div class="answer-slot" data-slot="3">
+                                <div class="answer-card">
+                                    <div class="card-front">3</div>
+                                    <div class="card-back">
+                                        <span class="answer-text"></span>
+                                        <span class="answer-points"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="answer-slot" data-slot="4">
+                                <div class="answer-card">
+                                    <div class="card-front">4</div>
+                                    <div class="card-back">
+                                        <span class="answer-text"></span>
+                                        <span class="answer-points"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="answer-row">
+                            <div class="answer-slot" data-slot="5">
+                                <div class="answer-card">
+                                    <div class="card-front">5</div>
+                                    <div class="card-back">
+                                        <span class="answer-text"></span>
+                                        <span class="answer-points"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="answer-slot" data-slot="6">
+                                <div class="answer-card">
+                                    <div class="card-front">6</div>
+                                    <div class="card-back">
+                                        <span class="answer-text"></span>
+                                        <span class="answer-points"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Decorative dots - right side -->
+                    <div class="dots-panel dots-right">
+                        <div class="dots-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strikes display -->
+            <div class="strikes-container">
+                <div class="strike" id="strike-1">✕</div>
+                <div class="strike" id="strike-2">✕</div>
+                <div class="strike" id="strike-3">✕</div>
+            </div>
+
+            <!-- Round points -->
+            <div class="round-points">
+                <span>Round Points:</span>
+                <span id="round-points-value">0</span>
+            </div>
+
+            <!-- Steal opportunity modal -->
+            <div class="steal-modal" id="steal-modal">
+                <div class="steal-content">
+                    <h2>🚨 STEAL OPPORTUNITY! 🚨</h2>
+                    <p id="steal-team-name">Team 2</p>
+                    <p>Can steal <span id="steal-points">0</span> points!</p>
+                    <p class="steal-instruction">One guess to steal all points!</p>
+                    <div class="steal-input-container">
+                        <input type="text" id="steal-answer-input" placeholder="Enter your steal answer..." autocomplete="off">
+                        <button class="steal-submit-btn" id="steal-submit-btn">STEAL!</button>
+                    </div>
+                    <button class="steal-close-btn" id="steal-close-btn">✕ Skip Steal</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- FAST MONEY SECTION (hidden by default) -->
+        <section class="fast-money-section" id="fast-money-section">
+            <div class="fast-money-header">
+                <h1>⚡ FAST MONEY ⚡</h1>
+                <div class="fast-money-timer">
+                    <span id="fm-timer">20</span>
+                    <span>seconds</span>
+                </div>
+                <div class="fast-money-player">
+                    <span>Player:</span>
+                    <span id="fm-player-number">1</span>
+                </div>
+            </div>
+
+            <!-- Start overlay for each player -->
+            <div class="fm-start-overlay" id="fm-start-overlay">
+                <div class="fm-start-content">
+                    <h2 id="fm-start-title">🎯 ИГРАЧ 1 🎯</h2>
+                    <p id="fm-start-instruction">Приготви се! Имаш 20 секунди за 5 въпроса.</p>
+                    <p class="fm-start-tip">Играч 2 - излез от стаята!</p>
+                    <button id="fm-start-btn" class="fm-start-btn">▶ СТАРТ</button>
+                </div>
+            </div>
+
+            <div class="fast-money-board">
+                <div class="fm-questions-container">
+                    <!-- 5 questions for fast money -->
+                    <div class="fm-question-row" data-fm-q="1">
+                        <div class="fm-question-text" id="fm-q1-text">Question 1</div>
+                        <div class="fm-answers">
+                            <div class="fm-answer fm-answer-p1" id="fm-q1-a1">---</div>
+                            <div class="fm-points fm-points-p1" id="fm-q1-p1">0</div>
+                            <div class="fm-answer fm-answer-p2" id="fm-q1-a2">---</div>
+                            <div class="fm-points fm-points-p2" id="fm-q1-p2">0</div>
+                        </div>
+                    </div>
+                    <div class="fm-question-row" data-fm-q="2">
+                        <div class="fm-question-text" id="fm-q2-text">Question 2</div>
+                        <div class="fm-answers">
+                            <div class="fm-answer fm-answer-p1" id="fm-q2-a1">---</div>
+                            <div class="fm-points fm-points-p1" id="fm-q2-p1">0</div>
+                            <div class="fm-answer fm-answer-p2" id="fm-q2-a2">---</div>
+                            <div class="fm-points fm-points-p2" id="fm-q2-p2">0</div>
+                        </div>
+                    </div>
+                    <div class="fm-question-row" data-fm-q="3">
+                        <div class="fm-question-text" id="fm-q3-text">Question 3</div>
+                        <div class="fm-answers">
+                            <div class="fm-answer fm-answer-p1" id="fm-q3-a1">---</div>
+                            <div class="fm-points fm-points-p1" id="fm-q3-p1">0</div>
+                            <div class="fm-answer fm-answer-p2" id="fm-q3-a2">---</div>
+                            <div class="fm-points fm-points-p2" id="fm-q3-p2">0</div>
+                        </div>
+                    </div>
+                    <div class="fm-question-row" data-fm-q="4">
+                        <div class="fm-question-text" id="fm-q4-text">Question 4</div>
+                        <div class="fm-answers">
+                            <div class="fm-answer fm-answer-p1" id="fm-q4-a1">---</div>
+                            <div class="fm-points fm-points-p1" id="fm-q4-p1">0</div>
+                            <div class="fm-answer fm-answer-p2" id="fm-q4-a2">---</div>
+                            <div class="fm-points fm-points-p2" id="fm-q4-p2">0</div>
+                        </div>
+                    </div>
+                    <div class="fm-question-row" data-fm-q="5">
+                        <div class="fm-question-text" id="fm-q5-text">Question 5</div>
+                        <div class="fm-answers">
+                            <div class="fm-answer fm-answer-p1" id="fm-q5-a1">---</div>
+                            <div class="fm-points fm-points-p1" id="fm-q5-p1">0</div>
+                            <div class="fm-answer fm-answer-p2" id="fm-q5-a2">---</div>
+                            <div class="fm-points fm-points-p2" id="fm-q5-p2">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fm-total">
+                    <span>TOTAL:</span>
+                    <span id="fm-total-points">0</span>
+                    <span>/ 200</span>
+                </div>
+
+                <div class="fm-prize" id="fm-prize">
+                    🎉 WIN $20,000! 🎉
+                </div>
+            </div>
+
+            <div class="fm-input-area">
+                <input type="text" id="fm-answer-input" class="fm-input" placeholder="Quick! Type your answer...">
+                <button id="fm-submit-btn" class="fm-submit-btn">SUBMIT</button>
+                <button id="fm-pass-btn" class="fm-pass-btn">PASS</button>
+            </div>
+        </section>
+
+        <!-- WINNER SCREEN (hidden by default) -->
+        <section class="winner-section" id="winner-section">
+            <div class="winner-content">
+                <h1 class="winner-title">🎉 WINNER! 🎉</h1>
+                <div class="winner-team" id="winner-team-name">Team 1</div>
+                <div class="winner-score" id="winner-score">300</div>
+                <div class="winner-prize" id="winner-prize">+ $20,000 Fast Money!</div>
+                <button id="play-again-btn" class="play-again-btn">PLAY AGAIN</button>
+            </div>
+            <div class="confetti" id="confetti"></div>
+        </section>
+
+        <!-- Answer input form -->
+        <footer class="game-controls" id="game-controls">
+            <!-- Current team indicator -->
+            <div class="current-turn" id="current-turn">
+                <span id="current-team-emoji">🔵</span>
+                <span id="current-team-text">Team 1's Turn</span>
+            </div>
+
+            <form id="answer-form" class="answer-form">
+                <input 
+                    type="text" 
+                    id="answer-input" 
+                    class="answer-input" 
+                    placeholder="Type your answer..." 
+                    autocomplete="off"
+                >
+                <button type="submit" class="submit-btn">
+                    <span>SUBMIT</span>
+                </button>
+            </form>
+
+            <!-- Game control buttons -->
+            <div class="control-buttons">
+                <button id="new-game-btn" class="control-btn">New Game</button>
+                <button id="skip-question-btn" class="control-btn skip-btn">🔄 Смяна на въпроса</button>
+                <button id="next-question-btn" class="control-btn">Next Question</button>
+                <button id="award-points-btn" class="control-btn award-btn">Award Points</button>
+                <button id="switch-team-btn" class="control-btn">Switch Team</button>
+            </div>
+
+            <!-- Spiciness slider -->
+            <div class="spiciness-control">
+                <label for="spiciness-slider">
+                    <span class="spicy-icon">🌶️</span>
+                    <span>Spiciness Level:</span>
+                    <span id="spiciness-value">0%</span>
+                </label>
+                <input 
+                    type="range" 
+                    id="spiciness-slider" 
+                    min="0" 
+                    max="100" 
+                    value="0" 
+                    class="spiciness-slider"
+                >
+                <div class="spiciness-labels">
+                    <span>Family Friendly</span>
+                    <span>🔥 Adults Only 🔥</span>
+                </div>
+            </div>
+        </footer>
     </div>
+
+    <script src="js/game.js"></script>
 </body>
 </html>

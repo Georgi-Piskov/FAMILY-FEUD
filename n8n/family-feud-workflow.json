@@ -1,0 +1,368 @@
+{
+  "name": "Family Feud - Grok AI Backend",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "family-feud/new-game",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-new-game",
+      "name": "New Game Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "family-feud-new-game"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "family-feud/next-question",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-next-question",
+      "name": "Next Question Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 550],
+      "webhookId": "family-feud-next-question"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "family-feud/check-answer",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-check-answer",
+      "name": "Check Answer Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 800],
+      "webhookId": "family-feud-check-answer"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"grok-beta\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a Family Feud game show question generator. Generate questions and survey answers that would appear on the show. The spiciness level determines how adult/risqué the content should be: 0% = family-friendly, 50% = mildly suggestive, 100% = adult humor (but not explicit). Always respond in valid JSON format.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": `Generate a Family Feud survey question with exactly 6 answers. Spiciness level: ${$json.body.spiciness || 0}%.\n\nRespond ONLY with this JSON format:\n{\n  \"question\": \"Name something...\",\n  \"answers\": [\n    {\"text\": \"Answer 1\", \"points\": 32},\n    {\"text\": \"Answer 2\", \"points\": 25},\n    {\"text\": \"Answer 3\", \"points\": 18},\n    {\"text\": \"Answer 4\", \"points\": 12},\n    {\"text\": \"Answer 5\", \"points\": 8},\n    {\"text\": \"Answer 6\", \"points\": 5}\n  ]\n}\n\nPoints should total 100 and be in descending order. Make the question fun and engaging!`\n    }\n  ],\n  \"temperature\": 0.9\n}) }}",
+        "options": {}
+      },
+      "id": "grok-generate-question",
+      "name": "Grok - Generate Question",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GROK_API_CREDENTIALS_ID",
+          "name": "Grok API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"grok-beta\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a Family Feud answer checker. Compare the player's answer against the correct answers and determine if there's a match. Be lenient with spelling and accept synonyms or close variations.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": `Player answered: \"${$json.body.answer}\"\n\nCorrect answers are:\n${$json.body.answers.map((a, i) => `${i+1}. ${a.text} (${a.points} points)`).join('\\n')}\n\nDoes the player's answer match any of these? Consider:\n- Spelling variations\n- Synonyms\n- Partial matches (e.g., \"teeth\" matches \"Brush Teeth\")\n\nRespond ONLY with this JSON:\n{\n  \"match\": true or false,\n  \"matchedIndex\": number (0-5) or -1 if no match,\n  \"matchedAnswer\": \"the matched answer text\" or null,\n  \"points\": number or 0\n}`\n    }\n  ],\n  \"temperature\": 0.3\n}) }}",
+        "options": {}
+      },
+      "id": "grok-check-answer",
+      "name": "Grok - Check Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 800],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GROK_API_CREDENTIALS_ID",
+          "name": "Grok API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Grok response and format for frontend\nconst grokResponse = $input.first().json;\n\ntry {\n  const content = grokResponse.choices[0].message.content;\n  // Extract JSON from response (handle markdown code blocks)\n  let jsonStr = content;\n  if (content.includes('```')) {\n    jsonStr = content.replace(/```json?\\n?/g, '').replace(/```/g, '').trim();\n  }\n  \n  const questionData = JSON.parse(jsonStr);\n  \n  return [{\n    json: {\n      success: true,\n      sessionId: `session_${Date.now()}`,\n      question: {\n        id: `q_${Date.now()}`,\n        text: questionData.question,\n        answers: questionData.answers.map((a, i) => ({\n          text: a.text,\n          points: a.points,\n          slot: i + 1,\n          revealed: false\n        }))\n      }\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      success: false,\n      error: 'Failed to parse question',\n      details: error.message\n    }\n  }];\n}"
+      },
+      "id": "parse-question",
+      "name": "Parse Question Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Grok answer check response\nconst grokResponse = $input.first().json;\n\ntry {\n  const content = grokResponse.choices[0].message.content;\n  let jsonStr = content;\n  if (content.includes('```')) {\n    jsonStr = content.replace(/```json?\\n?/g, '').replace(/```/g, '').trim();\n  }\n  \n  const result = JSON.parse(jsonStr);\n  \n  return [{\n    json: {\n      success: true,\n      match: result.match,\n      slotIndex: result.matchedIndex,\n      answer: result.match ? {\n        text: result.matchedAnswer,\n        points: result.points\n      } : null\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      success: false,\n      match: false,\n      error: 'Failed to check answer'\n    }\n  }];\n}"
+      },
+      "id": "parse-answer-check",
+      "name": "Parse Answer Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 800]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-new-game",
+      "name": "Respond - New Game",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-next-question",
+      "name": "Respond - Next Question",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 550]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-check-answer",
+      "name": "Respond - Check Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"grok-beta\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a Family Feud game show question generator for Fast Money round. Generate quick-fire questions with single top answers.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": `Generate 5 Fast Money questions for Family Feud. Spiciness level: ${$json.body.spiciness || 0}%.\n\nRespond ONLY with this JSON:\n{\n  \"questions\": [\n    {\"question\": \"Name a fruit that's red\", \"topAnswer\": \"Apple\", \"points\": 45},\n    {\"question\": \"...\", \"topAnswer\": \"...\", \"points\": 30-55},\n    ...\n  ]\n}\n\nMake questions varied and fun!`\n    }\n  ],\n  \"temperature\": 0.9\n}) }}",
+        "options": {}
+      },
+      "id": "grok-fast-money",
+      "name": "Grok - Fast Money Questions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 550],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GROK_API_CREDENTIALS_ID",
+          "name": "Grok API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Fast Money questions\nconst grokResponse = $input.first().json;\n\ntry {\n  const content = grokResponse.choices[0].message.content;\n  let jsonStr = content;\n  if (content.includes('```')) {\n    jsonStr = content.replace(/```json?\\n?/g, '').replace(/```/g, '').trim();\n  }\n  \n  const data = JSON.parse(jsonStr);\n  \n  return [{\n    json: {\n      success: true,\n      questions: data.questions\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      success: false,\n      error: 'Failed to parse Fast Money questions'\n    }\n  }];\n}"
+      },
+      "id": "parse-fast-money",
+      "name": "Parse Fast Money",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 550]
+    }
+  ],
+  "connections": {
+    "New Game Webhook": {
+      "main": [
+        [
+          {
+            "node": "Grok - Generate Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Question Webhook": {
+      "main": [
+        [
+          {
+            "node": "Grok - Fast Money Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Answer Webhook": {
+      "main": [
+        [
+          {
+            "node": "Grok - Check Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grok - Generate Question": {
+      "main": [
+        [
+          {
+            "node": "Parse Question Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grok - Check Answer": {
+      "main": [
+        [
+          {
+            "node": "Parse Answer Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grok - Fast Money Questions": {
+      "main": [
+        [
+          {
+            "node": "Parse Fast Money",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Question Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - New Game",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Fast Money": {
+      "main": [
+        [
+          {
+            "node": "Respond - Next Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Answer Check": {
+      "main": [
+        [
+          {
+            "node": "Respond - Check Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 3,
+  "pinData": {}
+}
