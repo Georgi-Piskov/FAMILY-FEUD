@@ -767,12 +767,19 @@ function highlightFMQuestion(index) {
 function startFMTimer() {
     const fm = gameState.fastMoney;
     
+    // Clear any existing interval to prevent double speed
+    if (fm.timerInterval) {
+        clearInterval(fm.timerInterval);
+        fm.timerInterval = null;
+    }
+    
     fm.timerInterval = setInterval(() => {
         fm.timeLeft--;
         DOM.fmTimer.textContent = fm.timeLeft;
         
         if (fm.timeLeft <= 0) {
             clearInterval(fm.timerInterval);
+            fm.timerInterval = null;
             
             if (fm.currentPlayer === 1) {
                 revealPlayer1Answers();
@@ -821,6 +828,7 @@ function handleFastMoneySubmit() {
     
     if (fm.currentQuestion >= 5) {
         clearInterval(fm.timerInterval);
+        fm.timerInterval = null;
         if (fm.currentPlayer === 1) revealPlayer1Answers();
         else endFastMoney();
     } else {
@@ -842,6 +850,7 @@ function handleFastMoneyPass() {
     
     if (fm.currentQuestion >= 5) {
         clearInterval(fm.timerInterval);
+        fm.timerInterval = null;
         if (fm.currentPlayer === 1) revealPlayer1Answers();
         else endFastMoney();
     } else {
@@ -873,6 +882,12 @@ function revealPlayer1Answers() {
 function startPlayer2FM() {
     const fm = gameState.fastMoney;
     
+    // Clear any existing interval
+    if (fm.timerInterval) {
+        clearInterval(fm.timerInterval);
+        fm.timerInterval = null;
+    }
+    
     fm.currentPlayer = 2;
     fm.currentQuestion = 0;
     fm.timeLeft = CONFIG.FAST_MONEY_TIME_P2;
@@ -880,14 +895,40 @@ function startPlayer2FM() {
     DOM.fmPlayerNumber.textContent = '2';
     DOM.fmTimer.textContent = fm.timeLeft;
     
+    // Hide Player 1's answers so Player 2 can't see them
+    hidePlayer1Answers();
+    
     highlightFMQuestion(0);
     
     // Show start overlay for Player 2 instead of starting timer immediately
     showFMStartOverlay(2);
 }
 
+function hidePlayer1Answers() {
+    for (let i = 1; i <= 5; i++) {
+        document.getElementById(`fm-q${i}-a1`).classList.add('hidden');
+        document.getElementById(`fm-q${i}-p1`).classList.add('hidden');
+    }
+}
+
+function showAllAnswers() {
+    // Show all Player 1 and Player 2 answers
+    for (let i = 1; i <= 5; i++) {
+        document.getElementById(`fm-q${i}-a1`).classList.remove('hidden');
+        document.getElementById(`fm-q${i}-p1`).classList.remove('hidden');
+        document.getElementById(`fm-q${i}-a2`).classList.remove('hidden');
+        document.getElementById(`fm-q${i}-p2`).classList.remove('hidden');
+    }
+}
+
 function endFastMoney() {
     const fm = gameState.fastMoney;
+    
+    // First show Player 1's answers again
+    for (let i = 1; i <= 5; i++) {
+        document.getElementById(`fm-q${i}-a1`).classList.remove('hidden');
+        document.getElementById(`fm-q${i}-p1`).classList.remove('hidden');
+    }
     
     fm.player2Answers.forEach((a, i) => {
         setTimeout(() => {
@@ -904,14 +945,39 @@ function endFastMoney() {
         }, i * 500);
     });
     
-    // After all answers revealed, show Next button
+    // After all answers revealed, show top answers panel and Next button
     setTimeout(() => {
         if (fm.totalPoints >= CONFIG.FAST_MONEY_TARGET) {
             DOM.fmPrize.classList.add('won');
         }
+        // Show top answers panel
+        showTopAnswersPanel();
         // Show "Next" button using overlay instead of auto-transition
         showFMNextOverlay();
     }, 3000);
+}
+
+function showTopAnswersPanel() {
+    const fm = gameState.fastMoney;
+    const panel = document.getElementById('fm-top-answers-panel');
+    const list = document.getElementById('fm-top-answers-list');
+    
+    if (!panel || !list) return;
+    
+    list.innerHTML = '';
+    
+    fm.questions.forEach((q, i) => {
+        const row = document.createElement('div');
+        row.className = 'fm-top-answer-row';
+        row.innerHTML = `
+            <span class="fm-top-q-num">${i + 1}.</span>
+            <span class="fm-top-answer">${q.topAnswer}</span>
+            <span class="fm-top-points">${q.points} pts</span>
+        `;
+        list.appendChild(row);
+    });
+    
+    panel.classList.remove('hidden');
 }
 
 function showFMNextOverlay() {
