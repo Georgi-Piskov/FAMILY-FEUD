@@ -118,8 +118,8 @@ const gameState = {
     maxRounds: 4,
     currentQuestion: null,
     answers: [],
-    team1: { name: 'Team 1', score: 0 },
-    team2: { name: 'Team 2', score: 0 },
+    team1: { name: 'Отбор 1', score: 0 },
+    team2: { name: 'Отбор 2', score: 0 },
     activeTeam: 1,
     controllingTeam: 1,
     strikes: 0,
@@ -524,16 +524,16 @@ function updateTeamUI() {
         DOM.team1Panel.classList.add('active');
         DOM.team2Panel.classList.remove('active');
         DOM.currentTeamEmoji.textContent = '🔵';
-        DOM.currentTeamText.textContent = `${gameState.team1.name}'s Turn`;
+        DOM.currentTeamText.textContent = `Ред на ${gameState.team1.name}`;
     } else {
         DOM.team1Panel.classList.remove('active');
         DOM.team2Panel.classList.add('active');
         DOM.currentTeamEmoji.textContent = '🔴';
-        DOM.currentTeamText.textContent = `${gameState.team2.name}'s Turn`;
+        DOM.currentTeamText.textContent = `Ред на ${gameState.team2.name}`;
     }
     
     if (gameState.stealMode) {
-        DOM.currentTeamText.textContent += ' (STEAL!)';
+        DOM.currentTeamText.textContent += ' (КРАДЕ!)';
     }
 }
 
@@ -574,7 +574,7 @@ function handleAnswerSubmit(e) {
         
         if (gameState.answers.every(a => a.revealed)) {
             setTimeout(() => {
-                DOM.questionText.textContent = "All answers found! Press 'Award Points'";
+                DOM.questionText.textContent = "Всички отговори намерени! Натисни 'Даване на точки'";
             }, 500);
         }
     } else {
@@ -694,7 +694,7 @@ function handleStealSubmit() {
         // activeTeam is already the stealing team
         awardPointsToActiveTeam();
         revealAllAnswers();
-        DOM.questionText.textContent = `🎉 STEAL! Team ${stealingTeam} wins the points!`;
+        DOM.questionText.textContent = `🎉 КРАЖБА! ${stealingTeam === 1 ? gameState.team1.name : gameState.team2.name} печели точките!`;
     } else {
         // Wrong answer - original team keeps points
         console.log('❌ STEAL FAILED! Points stay with Team', originalTeam);
@@ -702,7 +702,7 @@ function handleStealSubmit() {
         gameState.activeTeam = originalTeam;
         awardPointsToActiveTeam();
         revealAllAnswers();
-        DOM.questionText.textContent = `❌ Wrong! Team ${originalTeam} keeps the points!`;
+        DOM.questionText.textContent = `❌ Грешка! ${originalTeam === 1 ? gameState.team1.name : gameState.team2.name} запазва точките!`;
     }
     
     stealInput.value = '';
@@ -967,8 +967,8 @@ function handleFastMoneySubmit() {
         const p1Answer = fm.player1Answers[fm.currentQuestion].answer.toLowerCase();
         if (normalized === p1Answer || levenshteinDistance(normalized, p1Answer) <= 1) {
             DOM.fmAnswerInput.value = '';
-            DOM.fmAnswerInput.placeholder = 'Same answer! Try again...';
-            setTimeout(() => DOM.fmAnswerInput.placeholder = 'Quick! Type your answer...', 1500);
+            DOM.fmAnswerInput.placeholder = 'Същ отговор! Опитай отново...';
+            setTimeout(() => DOM.fmAnswerInput.placeholder = 'Бързо! Напиши отговор...', 1500);
             return;
         }
     }
@@ -1191,7 +1191,7 @@ function showWinner(teamNumber, wonFastMoney) {
     DOM.winnerScore.textContent = team.score;
     
     if (wonFastMoney) {
-        DOM.winnerPrize.textContent = `+ $${CONFIG.FAST_MONEY_PRIZE.toLocaleString()} Fast Money!`;
+        DOM.winnerPrize.textContent = `+ $${CONFIG.FAST_MONEY_PRIZE.toLocaleString()} Бързи пари!`;
         DOM.winnerPrize.style.display = 'block';
     } else {
         DOM.winnerPrize.style.display = 'none';
@@ -1229,7 +1229,7 @@ function createConfetti() {
 // ========================================
 function updateRoundUI() {
     const multiplier = CONFIG.ROUND_MULTIPLIERS[gameState.currentRound - 1] || 1;
-    DOM.roundNumber.textContent = `Round ${gameState.currentRound}`;
+    DOM.roundNumber.textContent = `Рунд ${gameState.currentRound}`;
     DOM.multiplier.textContent = `x${multiplier}`;
     DOM.roundPoints.textContent = gameState.roundPoints;
 }
