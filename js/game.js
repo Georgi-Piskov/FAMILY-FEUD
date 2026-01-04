@@ -24,6 +24,91 @@ const CONFIG = {
 };
 
 // ========================================
+// Sound Effects System
+// ========================================
+const SoundFX = {
+    audioContext: null,
+    
+    init() {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    },
+    
+    ensureContext() {
+        if (!this.audioContext) this.init();
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+    },
+    
+    // Wrong answer buzzer (X sound)
+    playBuzzer() {
+        this.ensureContext();
+        const ctx = this.audioContext;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(150, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5);
+        
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.5);
+    },
+    
+    // Time's up alarm for Fast Money
+    playTimeUp() {
+        this.ensureContext();
+        const ctx = this.audioContext;
+        
+        // Play 3 short beeps
+        for (let i = 0; i < 3; i++) {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(800, ctx.currentTime + i * 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.2);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.2 + 0.15);
+            
+            oscillator.start(ctx.currentTime + i * 0.2);
+            oscillator.stop(ctx.currentTime + i * 0.2 + 0.15);
+        }
+    },
+    
+    // Correct answer ding
+    playCorrect() {
+        this.ensureContext();
+        const ctx = this.audioContext;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659, ctx.currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(784, ctx.currentTime + 0.2); // G5
+        
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.4);
+    }
+};
+
+// ========================================
 // Game State
 // ========================================
 const gameState = {
@@ -44,6 +129,7 @@ const gameState = {
         currentQuestion: 0,
         timeLeft: 20,
         timerInterval: null,
+        timeExpired: false,
         player1Answers: [],
         player2Answers: [],
         questions: [],
@@ -227,6 +313,10 @@ function init() {
         if (e.key === 'Enter') handleFastMoneySubmit();
     });
     document.getElementById('fm-start-btn').addEventListener('click', startFMPlayerRound);
+    document.getElementById('fm-done-btn').addEventListener('click', handleFMDone);
+    
+    // Initialize sound effects on first user interaction
+    document.addEventListener('click', () => SoundFX.ensureContext(), { once: true });
     
     // Winner events
     DOM.playAgainBtn.addEventListener('click', startNewGame);
@@ -519,6 +609,9 @@ function revealAnswer(slotIndex) {
 
 function addStrike() {
     if (gameState.strikes < CONFIG.MAX_STRIKES) {
+        // Play buzzer sound
+        SoundFX.playBuzzer();
+        
         DOM.strikes[gameState.strikes].classList.add('active');
         gameState.strikes++;
         
@@ -773,6 +866,9 @@ function startFMTimer() {
         fm.timerInterval = null;
     }
     
+    fm.timeExpired = false;
+    hideFMDoneButton();
+    
     fm.timerInterval = setInterval(() => {
         fm.timeLeft--;
         DOM.fmTimer.textContent = fm.timeLeft;
@@ -780,14 +876,57 @@ function startFMTimer() {
         if (fm.timeLeft <= 0) {
             clearInterval(fm.timerInterval);
             fm.timerInterval = null;
+            fm.timeExpired = true;
             
-            if (fm.currentPlayer === 1) {
-                revealPlayer1Answers();
-            } else {
-                endFastMoney();
-            }
+            // Play time up sound and show visual warning
+            SoundFX.playTimeUp();
+            showFMTimeExpired();
+            showFMDoneButton();
+            
+            // Don't auto-end - let player click Done button
         }
     }, 1000);
+}
+
+function showFMTimeExpired() {
+    const fmSection = document.getElementById('fast-money-section');
+    fmSection.classList.add('time-expired');
+    DOM.fmTimer.classList.add('expired');
+}
+
+function hideFMTimeExpired() {
+    const fmSection = document.getElementById('fast-money-section');
+    fmSection.classList.remove('time-expired');
+    DOM.fmTimer.classList.remove('expired');
+}
+
+function showFMDoneButton() {
+    const doneBtn = document.getElementById('fm-done-btn');
+    if (doneBtn) doneBtn.classList.remove('hidden');
+}
+
+function hideFMDoneButton() {
+    const doneBtn = document.getElementById('fm-done-btn');
+    if (doneBtn) doneBtn.classList.add('hidden');
+}
+
+function handleFMDone() {
+    const fm = gameState.fastMoney;
+    
+    // Clear timer if still running
+    if (fm.timerInterval) {
+        clearInterval(fm.timerInterval);
+        fm.timerInterval = null;
+    }
+    
+    hideFMTimeExpired();
+    hideFMDoneButton();
+    
+    if (fm.currentPlayer === 1) {
+        revealPlayer1Answers();
+    } else {
+        endFastMoney();
+    }
 }
 
 function handleFastMoneySubmit() {
@@ -887,6 +1026,11 @@ function startPlayer2FM() {
         clearInterval(fm.timerInterval);
         fm.timerInterval = null;
     }
+    
+    // Reset time expired state
+    fm.timeExpired = false;
+    hideFMTimeExpired();
+    hideFMDoneButton();
     
     fm.currentPlayer = 2;
     fm.currentQuestion = 0;
