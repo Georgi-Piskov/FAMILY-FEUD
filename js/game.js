@@ -112,6 +112,7 @@ const SoundFX = {
 // Game State
 // ========================================
 const gameState = {
+    sessionId: null,
     mode: 'normal',
     currentRound: 1,
     maxRounds: 4,
@@ -138,6 +139,11 @@ const gameState = {
     },
     spiciness: 0
 };
+
+// Generate unique session ID
+function generateSessionId() {
+    return 'ff_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
 
 // ========================================
 // Demo Data
@@ -329,6 +335,10 @@ function init() {
 // Game Flow
 // ========================================
 async function startNewGame() {
+    // Generate new session ID for this game
+    gameState.sessionId = generateSessionId();
+    console.log('🎮 New game session:', gameState.sessionId);
+    
     gameState.mode = 'normal';
     gameState.currentRound = 1;
     gameState.team1.score = 0;
@@ -388,12 +398,15 @@ async function loadNextQuestion() {
         // Call n8n API
         try {
             console.log('🚀 Calling API:', `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.NEW_GAME}`);
-            console.log('📤 Request body:', { spiciness: gameState.spiciness });
+            console.log('📤 Request body:', { sessionId: gameState.sessionId, spiciness: gameState.spiciness });
             
             const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.NEW_GAME}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ spiciness: gameState.spiciness })
+                body: JSON.stringify({ 
+                    sessionId: gameState.sessionId,
+                    spiciness: gameState.spiciness 
+                })
             });
             
             console.log('📡 Response status:', response.status);
@@ -735,7 +748,11 @@ async function startFastMoney() {
             const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.NEXT_QUESTION}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ spiciness: gameState.spiciness, mode: 'fast-money' })
+                body: JSON.stringify({ 
+                    sessionId: gameState.sessionId,
+                    spiciness: gameState.spiciness, 
+                    mode: 'fast-money' 
+                })
             });
             
             const data = await response.json();
